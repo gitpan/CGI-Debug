@@ -1,5 +1,3 @@
-#!/usr/local/bin/perl -w
-
 # Before `make install' is performed this script should be runnable with
 # `make test'. After `make install' it should work as `perl test.pl'
 
@@ -19,6 +17,9 @@ sub test {
     print($true ? "ok $num\n" : "not ok $num $msg\n");
 }
 
+require 5.004_05;
+use Config; $perl = $Config{'perlpath'};
+
 # Set up a CGI environment
 $path = $ENV{PATH};
 %ENV = ();
@@ -35,12 +36,13 @@ $ENV{PATH} = $path;
 
 
 # Mail to owner
-test(2, `t/mail/send.cgi` eq <<EOT);
+test(2, `$perl t/mail/send.cgi` eq <<EOT);
 Content-type: text/html
 
 <html><head><title>CGI Error</title></head><body>
 <h1>CGI Error</h1>
-<p>An error occured while generating this page. The webmaster has now been notified.
+<p>An error occured while generating this page.
+The webmaster has now been notified.
 </body></html>
 EOT
     ;

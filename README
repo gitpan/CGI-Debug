@@ -1,21 +1,15 @@
-CGI::Debug  v0.06 alpha   -   module for debugging CGI programs.
+CGI::Debug  v0.07 alpha   -   module for debugging CGI programs.
 
 
-CHANGES
+CHANGES since 0.06
 
-   Release 0.06:
+   Updated module to worj with perl v5.6.0
 
-   The module can't work with mod_perl. Now, it won't try, and
-   will send a warning to STDERR.
+   require perl 5.004_05
 
-   Will now use Mail::Send instead of MIME::Lite in the hope of
-   broader platform support.
+   supporting perl binary in nonstandard place
 
-   Added a test suite (of 42 tests)
-
-   Will now not use CGI.pm for generating HTML
-
-   Updated the POD
+   enhancing test suit
 
 
 
@@ -55,7 +49,7 @@ It's highly configurable. Choose what functions to use.
 
 
 Configure with cookies, or enviroment variables, or on the use
-line.  This makes it possible 
+line.
 
 
 EXAMPLES

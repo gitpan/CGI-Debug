@@ -1,5 +1,3 @@
-#!/usr/local/bin/perl -w
-
 # Before `make install' is performed this script should be runnable with
 # `make test'. After `make install' it should work as `perl test.pl'
 
@@ -19,6 +17,9 @@ sub test {
     print($true ? "ok $num\n" : "not ok $num $msg\n");
 }
 
+require 5.004_05;
+use Config; $perl = $Config{'perlpath'};
+
 # Set up a CGI environment
 %ENV = ();
 $ENV{REQUEST_METHOD}='GET';
@@ -32,16 +33,16 @@ $ENV{SERVER_NAME} = 'the.good.ship.lollypop.com';
 
 
 # Just CR
-test(2, `t/header/cr.cgi` eq "Content-type: text/htmla1\n");
+test(2, `$perl t/header/cr.cgi` eq "Content-type: text/htmla1\n");
 
 # CRLF
-test(3, `t/header/crlf.cgi` eq "Content-type: text/html\r\n\r\na1\n");
+test(3, `$perl t/header/crlf.cgi` eq "Content-type: text/html\r\n\r\na1\n");
 
 # Empty header
-test(4, `t/header/empty.cgi` eq "\n\na1\n");
+test(4, `$perl t/header/empty.cgi` eq "\n\na1\n");
 
 # Multiline headers
-test(5, `t/header/extended.cgi` eq <<EOT);
+test(5, `$perl t/header/extended.cgi` eq <<EOT);
 Content-type: text/html
 	and more
 Something: else
@@ -51,7 +52,7 @@ EOT
     ;
 
 # Header format error
-test(6, `t/header/format.cgi` eq <<EOT);
+test(6, `$perl t/header/format.cgi` eq <<EOT);
 Content-type: text/html
 
 <html><head><title>CGI::Debug response</title></head><body>
@@ -73,7 +74,7 @@ EOT
     ;
 
 # Header mixed crlf error
-test(7, `t/header/format.cgi` eq <<EOT);
+test(7, `$perl t/header/format.cgi` eq <<EOT);
 Content-type: text/html
 
 <html><head><title>CGI::Debug response</title></head><body>
@@ -96,8 +97,7 @@ EOT
 
 
 # Ignored header
-test(8, `t/header/ignore.cgi` eq "bollibompa!\n");
+test(8, `$perl t/header/ignore.cgi` eq "bollibompa!\n");
 
 # Minimal header
-test(9, `t/header/minimal.cgi` eq "Content-Type: text/html\n\na1\n");
-
+test(9, `$perl t/header/minimal.cgi` eq "Content-Type: text/html\n\na1\n");

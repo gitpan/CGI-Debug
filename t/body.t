@@ -1,5 +1,3 @@
-#!/usr/local/bin/perl -w
-
 # Before `make install' is performed this script should be runnable with
 # `make test'. After `make install' it should work as `perl test.pl'
 
@@ -19,6 +17,9 @@ sub test {
     print($true ? "ok $num\n" : "not ok $num $msg\n");
 }
 
+require 5.004_05;
+use Config; $perl = $Config{'perlpath'};
+
 # Set up a CGI environment
 %ENV = ();
 $ENV{REQUEST_METHOD}='GET';
@@ -31,7 +32,7 @@ $ENV{SERVER_PORT} = 8080;
 $ENV{SERVER_NAME} = 'the.good.ship.lollypop.com';
 
 # empty body, html
-$res = `t/body/empty_html.cgi`;
+$res = `$perl t/body/empty_html.cgi`;
 $exp = <<EOT;
 Content-type: text/html
 
@@ -54,7 +55,7 @@ test(2, $res eq $exp );
 
 
 # empty body, text
-$res = `t/body/empty_text.cgi`;
+$res = `$perl t/body/empty_text.cgi`;
 $exp = <<EOT;
 Content-type: text/html
 
@@ -77,7 +78,7 @@ test(3, $res eq $exp );
 
 
 # empty body, died
-$res = `t/body/die.cgi`;
+$res = `$perl t/body/die.cgi`;
 $exp = <<EOT;
 Content-type: text/html
 

@@ -3,10 +3,11 @@
 
 BEGIN 
 {
-    require 5.004;
+    require 5.004_05;
 }
-
+use strict;
 use ExtUtils::MakeMaker 5.16;
+
 
 WriteMakefile(
 	      'NAME'	      => 'CGI::Debug',

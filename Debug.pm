@@ -2,8 +2,8 @@ package CGI::Debug;
 
 use strict;
 use vars qw( $VERSION $Module $File_base $Control $Reference 
-	     $Content_type $Body_length $Import_error $DEBUG $Started);
-$VERSION = 0.06;
+	     $Content_type $Body_length $Done $DEBUG $Started);
+$VERSION = 0.07;
 
 sub BEGIN
 {
@@ -11,9 +11,32 @@ sub BEGIN
     print "Content-Type: text/plain\n\n" if $DEBUG >2; # DEBUG
     $Module = __PACKAGE__;
 
-    unless( eval{ require 5.004 } )
+
+    sub import_error
+      {
+	my( $error, $paramsref ) = @_;
+	print "Content-Type: text/html\n\n";
+	print "<html><head><title>$Module response</title></head><body>";
+
+	print "<p>You got an error!\n";
+
+	if( ref $paramsref and eval{ require "Data/Dumper.pm" } )
+	  {
+	    print "<pre>\n", Data::Dumper::Dumper( $paramsref ), "</pre>\n\n";
+	  }
+
+	print "<p>$error\n";
+	print "</body></html>\n";
+
+	# Set error flag, for not go into END
+	# This avoid a perl core dump under 5.005_02
+	$Done = 1; 
+      }
+
+
+    unless( eval{ require 5.004_05 } )
     {
-	&import_error("You must at least have perl v 5.004 to use $Module");
+	&import_error("You must at least have perl v 5.004_05 to use $Module");
     }
 
     if( exists $ENV{'GATEWAY_INTERFACE'} and
@@ -67,6 +90,23 @@ sub BEGIN
 }
 
 
+END
+{
+    return if $Done; # This avoids a perl core dump under 5.005_02
+    &cleanup;
+}
+
+sub CHECK
+{
+    return if $Done; # This avoids a perl core dump under 5.005_02
+    if( -s "$File_base-error-$$" )
+    {
+	&cleanup;
+	$Done=1;
+    }
+}
+
+
 sub import
 {
     my( $self, @list ) = @_;
@@ -76,7 +116,7 @@ sub import
 	$ENV{'GATEWAY_INTERFACE'} =~ /^CGI-Perl/
 	)
     {
-	$Import_error = 1;
+	$Done = 1;
 	return;
     }
 
@@ -143,34 +183,8 @@ sub import
     }
 }
 
-
-sub import_error
+sub cleanup
 {
-    my( $error, $paramsref ) = @_;
-    print "Content-Type: text/html\n\n";
-    print "<html><head><title>$Module response</title></head><body>";
-
-    print "<p>You got an error!\n";
-
-    if( ref $paramsref and eval{ require "Data/Dumper.pm" } )
-    {
-	print "<pre>\n", Data::Dumper::Dumper( $paramsref ), "</pre>\n\n";
-    }
-
-    print "<p>$error\n";
-    print "</body></html>\n";
-
-    # Set error flag, for not go into END
-    # This avoid a perl core dump under 5.005_02
-    $Import_error = 1; 
-    exit; 
-}
-
-sub END
-{
-    return if $Import_error; # This avoids a perl core dump under 5.005_02
-
-    require 'Data/Dumper.pm'; warn Data::Dumper::Dumper($Control) if $DEBUG >2; # DEBUG
     my $errfile = &set_defaults;
     my $out_ref = undef;
 
@@ -344,7 +358,8 @@ sub END
 		print "Content-type: text/html\n\n";
 		print "<html><head><title>CGI Error</title></head><body>\n";
 		print "<h1>CGI Error</h1>\n";
-		print "<p>An error occured while generating this page. The webmaster has now been notified.\n";
+		print "<p>An error occured while generating this page.\n";
+		print "The webmaster has now been notified.\n";
 		print "</body></html>\n";
 	    }
 	}
@@ -528,8 +543,8 @@ sub header_ok
 	    }
 	    if( $name =~ m/content-type/i )
 	    {
-		$content = 'text/html' if $val=~ m/\btext\/\html\b/sio;
-		$content = 'text/plain' if $val=~ m/\btext\/\plain\b/sio;
+		$content = 'text/html' if $val=~ m/\btext\/html\b/sio;
+		$content = 'text/plain' if $val=~ m/\btext\/plain\b/sio;
 	    }
 	    
 	    $$ofr =~ m/\G($token):($nctl)$lcrlf/gmco;
@@ -641,7 +656,8 @@ sub unravel
 		}
 		elsif( not grep { $val eq $_ } @$struct )
 		{
-		    die "'$val' in '$name' not one of qw(@$struct)\n";
+		    my @sortstruct = sort @$struct;
+		    die "'$val' in '$name' not one of qw(@sortstruct)\n";
 		}
 		$newref->{$val} = 1;
 	    }
@@ -694,7 +710,8 @@ sub unravel
 	    my @struct_keys = keys %$struct;
 	    if( @struct_keys and not grep { $key eq $_ } @struct_keys )
 	    {
-		die "'$key' in '$name' not one of qw(@struct_keys)\n";
+		my @sorted = sort @struct_keys;
+		die "'$key' in '$name' not one of qw(@sorted)\n";
 	    }
 
 	    $newref->{$key} = &unravel( $result->{$key}, $struct->{$key}, $key );

@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+# -*-Perl-*-
 BEGIN { unshift @INC, 'blib/lib' }
 use CGI::Debug;
 use strict;

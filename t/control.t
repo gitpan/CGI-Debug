@@ -1,5 +1,3 @@
-#!/usr/local/bin/perl -w
-
 # Before `make install' is performed this script should be runnable with
 # `make test'. After `make install' it should work as `perl test.pl'
 
@@ -18,6 +16,9 @@ sub test {
     my($num, $true,$msg) = @_;
     print($true ? "ok $num\n" : "not ok $num $msg\n");
 }
+
+require 5.004_05;
+use Config; $perl = $Config{'perlpath'};
 
 # Set up a CGI environment
 %ENV = ();
@@ -72,44 +73,44 @@ $end = "\n<EOF>\n";
 $start = $output.$errheader;
 
 # Default output
-$res = `t/control/default.cgi`;
+$res = `$perl t/control/default.cgi`;
 $res =~ s/in [\d\.]+ seconds/in 0.684 seconds/;
 test(2, $res eq $start.$warning_default.$time.$params.$cookies.$enviroment.$end);
 
 # Setting enviroment
 $ENV{'CGI-Debug-report'}='errors';
-test(3, `t/control/default.cgi` eq $start.$warning_default.$end);
+test(3, `$perl t/control/default.cgi` eq $start.$warning_default.$end);
 
 # env and params, cumulative
-test(4, `t/control/params.cgi` eq $start.$warning_params.$params.$end);
+test(4, `$perl t/control/params.cgi` eq $start.$warning_params.$params.$end);
 
 # env and cookie, cumulative
 $ENV{'HTTP_COOKIE'} = 'CGI-Debug-report=time';
-$res = `t/control/default.cgi`;
+$res = `$perl t/control/default.cgi`;
 $res =~ s/in [\d\.]+ seconds/in 0.684 seconds/;
 test(5, $res eq $start.$warning_default.$time.$end);
 
 # env, cookie and params, cumulative
-$res = `t/control/params.cgi`;
+$res = `$perl t/control/params.cgi`;
 $res =~ s/in [\d\.]+ seconds/in 0.684 seconds/;
 test(6, $res eq $start.$warning_params.$time.$params.$end);
 
 # cookie and params, cumulative
 delete $ENV{'CGI-Debug-report'};
 $ENV{'HTTP_COOKIE'} = 'CGI-Debug-report=errors';
-test(7, `t/control/params.cgi` eq $start.$warning_params.$params.$end);
+test(7, `$perl t/control/params.cgi` eq $start.$warning_params.$params.$end);
 
 # env and params, override
 $ENV{'CGI-Debug-set-param_length'}=2;
-test(8, `t/control/length.cgi` eq $start.$warning_length.$params_l2.$end);
+test(8, `$perl t/control/length.cgi` eq $start.$warning_length.$params_l2.$end);
 
 # env, cookie and params, override
 $ENV{'HTTP_COOKIE'} = 'CGI-Debug-set-param_length=3';
-test(9, `t/control/length.cgi` eq $start.$warning_length.$params_l3.$end);
+test(9, `$perl t/control/length.cgi` eq $start.$warning_length.$params_l3.$end);
 
 # env and cookies, override
-test(10, `t/control/params.cgi` eq $start.$warning_params.$params_l3.$end);
+test(10, `$perl t/control/params.cgi` eq $start.$warning_params.$params_l3.$end);
 
 # param and cookies, override
 delete $ENV{'CGI-Debug-set-param_length'};
-test(11, `t/control/length.cgi` eq $start.$warning_length.$params_l3.$end);
+test(11, `$perl t/control/length.cgi` eq $start.$warning_length.$params_l3.$end);

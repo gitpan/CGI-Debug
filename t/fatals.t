@@ -1,5 +1,3 @@
-#!/usr/local/bin/perl -w
-
 # Before `make install' is performed this script should be runnable with
 # `make test'. After `make install' it should work as `perl test.pl'
 
@@ -19,6 +17,9 @@ sub test {
     print($true ? "ok $num\n" : "not ok $num $msg\n");
 }
 
+require 5.004_05;
+use Config; $perl = $Config{'perlpath'};
+
 # Set up a CGI environment
 %ENV = ();
 $ENV{REQUEST_METHOD}='GET';
@@ -32,20 +33,24 @@ $ENV{SERVER_NAME} = 'the.good.ship.lollypop.com';
 
 
 # Compile error
-test(2, `t/fatals/compile.cgi` eq <<EOT);
+test(2, `$perl t/fatals/compile.cgi` eq <<EOT);
 Content-type: text/html
 
 <html><head><title>CGI::Debug response</title></head><body>
 <h2>/cgi-bin/foo.cgi</h2>
 <plaintext>
-Can\'t locate object method "compile" via package "error" at t/fatals/compile.cgi line 6.
+Bareword "eRrOr" not allowed while "strict subs" in use at t/fatals/compile.cgi line 6.
+Execution of t/fatals/compile.cgi aborted due to compilation errors.
+
+Your program doesn\'t produce ANY output!
+
 
 <EOF>
 EOT
     ;
 
 # Early runtime error
-test(3, `t/fatals/early.cgi` eq <<EOT);
+test(3, `$perl t/fatals/early.cgi` eq <<EOT);
 Content-type: text/html
 
 <html><head><title>CGI::Debug response</title></head><body>
@@ -61,7 +66,7 @@ EOT
     ;
 
 # Late runtime error, html
-test(4, `t/fatals/late_html.cgi` eq <<EOT);
+test(4, `$perl t/fatals/late_html.cgi` eq <<EOT);
 Content-type: text/html
 
 a1
@@ -74,7 +79,7 @@ EOT
     ;
 
 # Late runtime error, text
-test(5, `t/fatals/late_text.cgi` eq <<EOT);
+test(5, `$perl t/fatals/late_text.cgi` eq <<EOT);
 Content-type: something/strange
 
 a1
@@ -90,4 +95,3 @@ Died at t/fatals/late_text.cgi line 8.
 <EOF>
 EOT
     ;
-

@@ -1,5 +1,3 @@
-#!/usr/local/bin/perl -w
-
 # Before `make install' is performed this script should be runnable with
 # `make test'. After `make install' it should work as `perl test.pl'
 
@@ -19,6 +17,9 @@ sub test {
     print($true ? "ok $num\n" : "not ok $num $msg\n");
 }
 
+require 5.004_05;
+use Config; $perl = $Config{'perlpath'};
+
 # Set up a CGI environment
 %ENV = ();
 $ENV{REQUEST_METHOD}='GET';
@@ -32,17 +33,13 @@ $ENV{SERVER_NAME} = 'the.good.ship.lollypop.com';
 
 
 # Faulty parameters
-test(2, `t/internals/not_found.cgi` eq <<EOT);
+$res = `$perl t/internals/not_found.cgi`;
+$res =~ s/<pre>.*<\/pre>\s*//s;
+test(2, $res eq <<EOT);
 Content-Type: text/html
 
 <html><head><title>CGI::Debug response</title></head><body><p>You got an error!
-<pre>
-\$VAR1 = {
-          'reap' => 'errors'
-        };
-</pre>
-
-<p>'reap' in 'the ref' not one of qw(header to set report on)
+<p>'reap' in 'the ref' not one of qw(header on report set to)
 
 </body></html>
 EOT

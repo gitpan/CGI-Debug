@@ -1,5 +1,3 @@
-#!/usr/local/bin/perl -w
-
 # Before `make install' is performed this script should be runnable with
 # `make test'. After `make install' it should work as `perl test.pl'
 
@@ -19,7 +17,10 @@ sub test {
     print($true ? "ok $num\n" : "not ok $num $msg\n");
 }
 
-test(2, `t/anything/working_html.cgi` eq <<EOT);
+require 5.004_05;
+use Config; $perl = $Config{'perlpath'};
+
+test(2, `$perl t/anything/working_html.cgi` eq <<EOT);
 Content-type: text/html
 
 a1
@@ -31,7 +32,7 @@ EOT
     ;
 
 
-test(3, `t/anything/working_text.cgi` eq <<EOT);
+test(3, `$perl t/anything/working_text.cgi` eq <<EOT);
 Content-type: something/else
 
 a1

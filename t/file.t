@@ -1,5 +1,3 @@
-#!/usr/local/bin/perl -w
-
 # Before `make install' is performed this script should be runnable with
 # `make test'. After `make install' it should work as `perl test.pl'
 
@@ -19,6 +17,9 @@ sub test {
     print($true ? "ok $num\n" : "not ok $num $msg\n");
 }
 
+require 5.004_05;
+use Config; $perl = $Config{'perlpath'};
+
 # Set up a CGI environment
 %ENV = ();
 $ENV{REQUEST_METHOD}='GET';
@@ -36,23 +37,23 @@ Content-type: text/html
 
 <html><head><title>CGI Error</title></head><body>
 <h1>CGI Error</h1>
-<p>An error occured while generating this page. The webmaster has now been notified.
+<p>An error occured while generating this page.
+The webmaster has now been notified.
 </body></html>
 EOT
     ;
 
 # Compile error
-test(2, `t/file/compile.cgi` eq $error);
+test(2, `$perl t/file/compile.cgi` eq $error);
 
 # Runtime error
-test(3, `t/file/die.cgi` eq "Content-type: text/html\n\na1\n");
+test(3, `$perl t/file/die.cgi` eq "Content-type: text/html\n\na1\n");
 
 # Header error
-test(4, `t/file/header.cgi` eq $error);
+test(4, `$perl t/file/header.cgi` eq $error);
 
 # Runtime warning
-test(5, `t/file/warn.cgi` eq "Content-type: text/html\n\na1\n");
+test(5, `$perl t/file/warn.cgi` eq "Content-type: text/html\n\na1\n");
 
 # Custom error response
-test(6, `t/file/custom.cgi` eq "Status: 302 Moved\nLocation: failed.html\n\n");
-
+test(6, `$perl t/file/custom.cgi` eq "Status: 302 Moved\nLocation: failed.html\n\n");
