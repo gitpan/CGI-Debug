@@ -3,19 +3,35 @@ package CGI::Debug;
 use strict;
 use vars qw( $VERSION $Module $File_base $Control $Reference 
 	     $Content_type $Body_length $Import_error $DEBUG $Started);
-$VERSION = 0.05;
+$VERSION = 0.06;
 
 sub BEGIN
 {
     $DEBUG = 0;  # <-- DEBUG
     print "Content-Type: text/plain\n\n" if $DEBUG >2; # DEBUG
-
-
     $Module = __PACKAGE__;
 
     unless( eval{ require 5.004 } )
     {
 	&import_error("You must at least have perl v 5.004 to use $Module");
+    }
+
+    if( exists $ENV{'GATEWAY_INTERFACE'} and
+	$ENV{'GATEWAY_INTERFACE'} =~ /^CGI-Perl/ 
+	)
+    {
+	my $modfile = $Module;
+	$modfile =~ s/::/\//g;
+
+	my($i,$p,$filename)=0;
+	while( ($p,$filename) = caller(++$i) )
+	{
+	    last unless $filename =~ /\/$modfile\.pm$/;
+	}
+	
+	warn "$filename: $Module can't be used under mod_perl\n";
+
+	return;
     }
 
     unless( eval{ require 'CGI.pm' } )
@@ -54,6 +70,15 @@ sub BEGIN
 sub import
 {
     my( $self, @list ) = @_;
+
+
+    if( exists $ENV{'GATEWAY_INTERFACE'} and 
+	$ENV{'GATEWAY_INTERFACE'} =~ /^CGI-Perl/
+	)
+    {
+	$Import_error = 1;
+	return;
+    }
 
     # Check if @list is in pairs
     @list % 2 and &import_error("The param list to $Module must be in key/value pairs");
@@ -123,7 +148,7 @@ sub import_error
 {
     my( $error, $paramsref ) = @_;
     print "Content-Type: text/html\n\n";
-    print &CGI::start_html("$Module response");
+    print "<html><head><title>$Module response</title></head><body>";
 
     print "<p>You got an error!\n";
 
@@ -133,7 +158,7 @@ sub import_error
     }
 
     print "<p>$error\n";
-    print &CGI::end_html;
+    print "</body></html>\n";
 
     # Set error flag, for not go into END
     # This avoid a perl core dump under 5.005_02
@@ -237,26 +262,29 @@ sub END
 
 	if( $Control->{'to'}{'mail'} )
 	{
-	    if( eval{ require "MIME/Lite.pm" })
+	    if( eval{ require "Mail/Send.pm" })
 	    {
 		foreach my $recipient ( @{ $Control->{'to'}{'mail'} } )
 		{
-		    my $body = "";
-		    $body .= "File: $script_name\n\n";
-		    $body .= $errfile;
-		    $body .= $info;
-		    $body .= "\n<EOF>\n";
-		    my $server_admin = $ENV{ SERVER_ADMIN } || 'root';
-		    my $msg = new MIME::Lite
-			From    => "$Module <$server_admin>",
-			To      => $recipient,
-			Subject => "Error in $script_name",
-			Type    =>'TEXT', 
-			Data    =>$body;
-		    if( not eval{ $msg->send })
+		    if( not eval
+			{ 
+			    my $server_admin = $ENV{ SERVER_ADMIN } || 'root';
+			    my $msg = new Mail::Send;
+			    $msg->to( $recipient );
+			    $msg->subject( "Error in $script_name" );
+#	Doesn't work :-(    $msg->set('From' => "$Module <$server_admin>");
+			    
+			    my $fh = $msg->open;
+			    print $fh "File: $script_name\n\n";
+			    print $fh $errfile;
+			    print $fh $info;
+			    print $fh "\n<EOF>\n";
+			
+			    $fh->close;
+			})
 		    {
 			$Control->{'to'}{'browser'} = 1;
-			$errfile .= "\n$Module (MIME::Lite):\n$@" if $@;
+			$errfile .= "\n$Module (Mail::Send):\n$@" if $@;
 			$errfile .= "\n$Module: Could not mail to '$recipient'\n\n";
 		    }
 		}
@@ -272,8 +300,8 @@ sub END
 	{
 	    if( defined $Body_length and $Body_length == 0 )
 	    {
-		print &CGI::header;
-		print &CGI::start_html("$Module response");
+		print "Content-type: text/html\n\n";
+		print "<html><head><title>$Module response</title></head><body>\n";
 		print "<h2>$script_name</h2>\n";
 		print "<plaintext>\n";
 	    }
@@ -309,16 +337,15 @@ sub END
 	{
 	    if( defined $Control->{'set'}{'error_document'} )
 	    {
-		print &CGI::redirect( $Control->{'set'}{'error_document'} );
+		print "Status: 302 Moved\nLocation: $Control->{'set'}{'error_document'}\n\n";
 	    }
 	    else
 	    {
-		print &CGI::header;
-		print &CGI::start_html('CGI Error');
-		print &CGI::h1('CGI Error');
-		print &CGI::p('An error occured while generating this
-	page. The webmaster has now been notified.');
-		print &CGI::end_html;
+		print "Content-type: text/html\n\n";
+		print "<html><head><title>CGI Error</title></head><body>\n";
+		print "<h1>CGI Error</h1>\n";
+		print "<p>An error occured while generating this page. The webmaster has now been notified.\n";
+		print "</body></html>\n";
 	    }
 	}
 	else
@@ -327,6 +354,8 @@ sub END
 	    #
 	    print $$out_ref if defined $$out_ref;
 	}
+	
+	$?=1; # Indicate the error
     }
     else
     {
@@ -350,7 +379,10 @@ sub END
     # This is for 5.005_02. There seem to be output from print
     # statements, that should never have been executed, because of
     # compile errors. This close stops that text from getting out.
-
+    #
+    # The value of $? seems to be used for determining if there was a
+    # compile error or not. If not setting $? to 1, perl vill execute
+    # the program AFTER this END. (On some systems)
 }
 
 sub key_values
@@ -486,7 +518,7 @@ sub header_ok
 	my $val  = $2; 
 	my $pos = pos($$ofr);
 	$lcrlf = $3;
-	
+
 	while()
 	{
 	    if( $$ofr =~ m/\G[ \t]+($nctl)$lcrlf/gmco )
@@ -502,7 +534,7 @@ sub header_ok
 	    
 	    $$ofr =~ m/\G($token):($nctl)$lcrlf/gmco;
 	    $name = $1; $val = $2;
-	    
+
 	    last if $pos == pos($$ofr);
 	    $pos = pos($$ofr);
 	}
@@ -744,7 +776,7 @@ sub set_defaults
     ### Control set
     #
     my %default_set = (
-		       param_length => 40,
+		       param_length => 60,
 		       );
     foreach my $pref (keys %default_set)
     {
@@ -810,7 +842,7 @@ CGI::Debug - module for CGI programs debugging
 					 ],
 			 },
 		 header => 'control',
-		 set    => { param_length => 60 },
+		 set    => { error_document => 'oups.html' },
 		 );
 
 =head1 DESCRIPTION
@@ -823,7 +855,7 @@ will not change the behaviour of your cgi program. As long as your
 program works, you will not notice the modules presence.
 
 At any time you can remove the "use CGI::Debug" without changing the
-behaviour of your program. It will only run MUCH faster.
+behaviour of your program. It will only start faster.
 
 The actions of CGI::Debug is determined by, in order:
   1. cookie control variables
@@ -863,7 +895,7 @@ cookies
 
 =item *
 
-environment variables (max 40 chars in value)
+environment variables (max 60 chars in value)
 
 =back
 
@@ -885,7 +917,7 @@ Send debug data as mail to file owner:
 
 Cookie control variables makes it possible to control the debugging
 environment from a program in another browser window. This would be
-prefereble with comples web pages (framesets, etc). The page is viewd
+prefereble with complex web pages (framesets, etc). The page is viewd
 as normal in one window. All debugging data is shown i another window,
 that also provides controls to alter the debugging environment. (But
 this external debugging program is not yet implemented.)
@@ -894,10 +926,10 @@ Environment control variables makes it more easy to globaly set the
 debugging environment for a web site. It is also a way for the target
 program to control the CGI::Debug module actions.
 
-The four methods can be mixed. (Import parameters, cookies, environment
+The four methods can be mixed. (Cookies, enviroment, import parameters
 and defaults.) The module will try to make sense with whatever you
-give it. The possibilites of control are more limitied in the
-Cookie / ENV version.
+give it. The possibilites of control are more limitied in the Cookie /
+ENV version.
 
 =head2 report errors
 
@@ -908,9 +940,9 @@ Cookie / ENV version.
 
 Report the content of STDERR. 
 
-This will allways be reported. This
-control is for saying that none of the other defualt things will be
-reported.
+This will allways be reported. This control is for saying that none of
+the other defualt things will be reported. This will only override the
+default. Other report controls will be accumulated.
 
 =head2 report empty_body
 
@@ -991,6 +1023,13 @@ compliance.)
 
 Report data for the debugging of the module itself, including
 everything else.  Data::Dumper will be used, if found.
+
+If the module itself dies, you will probably not get any output at al.
+You can check for errors in the file /tmp/CGI-Debug-error-$$.  In
+order to see what error CGI::Debug is generating, you could changing
+$DEBUG to 2 or more, in the module file itself. Please email the
+author about any problems.
+
 
 =head2 on fatals
 
@@ -1084,12 +1123,10 @@ versions.
 Send report with email.
 
 The default mailaddress is the owner of the cgi program.  This
-function requires the MIME::Lite module. If there is any problem with
-the default behaviour of MIME::Lite (using sendmail), you can change
-its configuration. See the MIME::Lite documentation. If you
-want to change the path:
-
-  use MIME::Lite; BEGIN{ MIME::Lite->send('sendmail' => '/usr/sbin/sendmail -t -oi -oem') }
+function requires the Mail::Send module. If there is any problem with
+the default behaviour of Mail::Send, set the enviroment variables, as
+described in the POD for Mail::Mailer, either for the HTTP server, or
+before "use CGI::Debug" in a BEGIN block.
 
 The idea is to specify an email address that will be used if anybody
 besides yourself is getting an error. You will not get your own
@@ -1144,7 +1181,7 @@ without the need to save STDOUT to a temporary file.
 
 Set the max length of the parameter values.
 
-The default length is 40 chars. This is used for query parameters,
+The default length is 60 chars. This is used for query parameters,
 cookies and environment. The purpose is to give you a table that looks
 good.
 
@@ -1163,6 +1200,18 @@ will show up. But if the CGI program succeeded in printing a valid
 http header and something in the body, that will be showed instead,
 even if the program later crashed.
 
+=head1 MOD_PERL
+
+CGI::Debug will not function under mod_perl. The only solution to get
+similar functionality is to develop a replacement for
+Apache::Registry, with integrated debugging features.  The
+configuration interface can not include the "use CGI::Debug ( report
+=> ... )" style, in a mod_perl version.
+
+If you run CGI::Debug under mod_perl, it will do nothing, except
+sending a warning to STDERR.
+
+
 =head1 TODO
 
 =over
@@ -1174,10 +1223,6 @@ Clean up and generalize configuration
 =item *
 
 Test on non-*nix platforms
-
-=item *
-
-Make it work with mod_perl
 
 =item *
 
@@ -1202,7 +1247,7 @@ Jonas Liljegren E<lt>jonas@paranormal.o.seE<gt>
 
 =head1 SEE ALSO
 
-CGI, MIME::Lite
+CGI, Mail::Send, Time::Hires, Data::Dumper, perl
 
 =cut 
 

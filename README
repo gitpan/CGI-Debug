@@ -1,27 +1,21 @@
-CGI::Debug  v0.05 alpha   -   module for debugging CGI programs.
-
-Now on CPAN! =-)
+CGI::Debug  v0.06 alpha   -   module for debugging CGI programs.
 
 
 CHANGES
 
-   Release 0.05:
+   Release 0.06:
 
-   Fixed bad spelling:
-   s/enviroment/environment/g in module and POD
+   The module can't work with mod_perl. Now, it won't try, and
+   will send a warning to STDERR.
 
+   Will now use Mail::Send instead of MIME::Lite in the hope of
+   broader platform support.
 
-   Release 0.04:
+   Added a test suite (of 42 tests)
 
-   Changed wording in POD
+   Will now not use CGI.pm for generating HTML
 
-   Fixed bug in the Control->to action determination. "to =>
-   'browser'", etc, wasn't working in 0.03.
-
-   Handled errors from MIME::Lite and added info about it i POD
-
-   Added "set => { error_document => 'redirection_url' } }"
-
+   Updated the POD
 
 
 
@@ -90,8 +84,6 @@ TODO
  o Clean up and generalize configuration
 
  o Test it on non *nix platforms
-
- o Make it work with mod_perl
 
  o Implement HTML_compliance controls (using HTML::validate)
 

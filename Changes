@@ -2,6 +2,22 @@ Revision history for Perl extension CGI::Debug.
 
 
 
+1999-11-07
+
+   Release 0.06
+
+   The module can't work with mod_perl. Now, it won't try, and
+   will send a warning to STDERR.
+
+   Will now use Mail::Send instead of MIME::Lite in the hope of
+   broader platform support.
+
+   Added a test suite (of 42 tests)
+
+   Will now not use CGI.pm for generating HTML
+
+   Updated the POD
+
 1999-05-11
 
    Release 0.05
