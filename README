@@ -1,11 +1,31 @@
-CGI::Debug  v0.03 alpha   -   module for debugging CGI programs.
+CGI::Debug  v0.05 alpha   -   module for debugging CGI programs.
 
-NOT on CPAN. Get it here: 
-	http://paranormal.o.se/perl/dist/CGI-Debug-0_03.tar.gz
-
-Would you find this module useful?  Please mail me.
+Now on CPAN! =-)
 
 
+CHANGES
+
+   Release 0.05:
+
+   Fixed bad spelling:
+   s/enviroment/environment/g in module and POD
+
+
+   Release 0.04:
+
+   Changed wording in POD
+
+   Fixed bug in the Control->to action determination. "to =>
+   'browser'", etc, wasn't working in 0.03.
+
+   Handled errors from MIME::Lite and added info about it i POD
+
+   Added "set => { error_document => 'redirection_url' } }"
+
+
+
+
+DESCRIPTION
 
 It's goal is to catch ALL errors and display them, along with useful
 data like form data, cookies, etc. You should never see the "Internal

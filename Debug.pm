@@ -3,7 +3,7 @@ package CGI::Debug;
 use strict;
 use vars qw( $VERSION $Module $File_base $Control $Reference 
 	     $Content_type $Body_length $Import_error $DEBUG $Started);
-$VERSION = 0.04;
+$VERSION = 0.05;
 
 sub BEGIN
 {
@@ -63,7 +63,7 @@ sub import
     $Reference = 
     {
 	report => [qw( errors empty_body time params cookies 
-		       enviroment html_compliance everything internals
+		       environment html_compliance everything internals
 		       )],
 	on     => [qw( fatals warnings anything )],
 	to     => 
@@ -178,8 +178,8 @@ sub END
     $info .= &report_time        if $Control->{'report'}{'time'};
     $info .= &report_params      if $Control->{'report'}{'params'};
     $info .= &report_cookies     if $Control->{'report'}{'cookies'};
-    $info .= &report_enviroment  if $Control->{'report'}{'enviroment'};
-#    $info .= &HTML_complians     if $Control->{'report'}{'HTML_complians'};
+    $info .= &report_environment if $Control->{'report'}{'environment'};
+#    $info .= &HTML_complians    if $Control->{'report'}{'HTML_complians'};
 
 
     if( $Control->{'report'}{'internals'} or $DEBUG )
@@ -406,9 +406,9 @@ sub report_cookies
     return &key_values( 'Cookies', { map{ $_, &CGI::cookie($_) } &CGI::cookie() } );
 }
 
-sub report_enviroment
+sub report_environment
 {
-    return &key_values( 'Enviroment', \%ENV ); 
+    return &key_values( 'Environment', \%ENV ); 
 }
 
 sub header_control
@@ -711,7 +711,7 @@ sub set_defaults
     ### Control
     #
     my %default = (
-		   report => 'enviroment',
+		   report => 'environment',
 		   on     => 'warnings',
 		   to     => 'browser',
 		   );
@@ -764,9 +764,9 @@ sub set_defaults
     # Set implications. ( If one option is alias for a group )  --> Not completed
 
     $Control->{'report'}{'everything'}=1 if $Control->{'report'}{'internals'};
-    $Control->{'report'}{'enviroment'}=1 if $Control->{'report'}{'everything'};
+    $Control->{'report'}{'environment'}=1 if $Control->{'report'}{'everything'};
     $Control->{'report'}{'html_compliance'}=1 if $Control->{'report'}{'everything'};
-    if( $Control->{'report'}{'enviroment'} )
+    if( $Control->{'report'}{'environment'} )
     {
 	$Control->{'report'}{$_}=1 foreach qw( empty_body time params cookies );
     }
@@ -799,7 +799,7 @@ CGI::Debug - module for CGI programs debugging
  use CGI::Debug;
 
  use CGI::Debug( report => ['errors', 'empty_body', 'time', 
-			    'params', 'cookies', 'enviroment',
+			    'params', 'cookies', 'environment',
 			    ],
 		 on     => 'fatals',
 		 to     => { browser => 1,
@@ -827,7 +827,7 @@ behaviour of your program. It will only run MUCH faster.
 
 The actions of CGI::Debug is determined by, in order:
   1. cookie control variables
-  2. enviroment control variables
+  2. environment control variables
   3. the import control parameters
   4. the defaults
 
@@ -863,7 +863,7 @@ cookies
 
 =item *
 
-enviroment variables (max 40 chars in value)
+environment variables (max 40 chars in value)
 
 =back
 
@@ -884,17 +884,17 @@ Send debug data as mail to file owner:
 =head1 CONTROL PARAMETERS
 
 Cookie control variables makes it possible to control the debugging
-enviroment from a program in another browser window. This would be
+environment from a program in another browser window. This would be
 prefereble with comples web pages (framesets, etc). The page is viewd
 as normal in one window. All debugging data is shown i another window,
-that also provides controls to alter the debugging enviroment. (But
+that also provides controls to alter the debugging environment. (But
 this external debugging program is not yet implemented.)
 
-Enviroment control variables makes it more easy to globaly set the
-debugging enviroment for a web site. It is also a way for the target
+Environment control variables makes it more easy to globaly set the
+debugging environment for a web site. It is also a way for the target
 program to control the CGI::Debug module actions.
 
-The four methods can be mixed. (Import parameters, cookies, enviroment
+The four methods can be mixed. (Import parameters, cookies, environment
 and defaults.) The module will try to make sense with whatever you
 give it. The possibilites of control are more limitied in the
 Cookie / ENV version.
@@ -960,14 +960,14 @@ Multiple values will be reported as distinct pairs, in order.  Values
 will be truncated to the "set param_length" number of chars. The total
 length is shown for each value.
 
-=head2 report enviroment
+=head2 report environment
 
-  Cookie / ENV: CGI-Debug-report=enviroment
+  Cookie / ENV: CGI-Debug-report=environment
 
-  Import: report => 'enviroment'
-	  report => [ 'enviroment', ... ]
+  Import: report => 'environment'
+	  report => [ 'environment', ... ]
 
-Report a table of all enviroment varialbes
+Report a table of all environment varialbes
 INCLUDING empty_body, time, params, cookies.
 
 =head2 report everything
@@ -977,7 +977,7 @@ INCLUDING empty_body, time, params, cookies.
   Import: report => 'everything'
 	  report => [ 'everything', ... ]
 
-Report enviroment and all what that includes.
+Report environment and all what that includes.
 
 (The plan is for this control to include the contorl of HTML
 compliance.)
@@ -1145,7 +1145,7 @@ without the need to save STDOUT to a temporary file.
 Set the max length of the parameter values.
 
 The default length is 40 chars. This is used for query parameters,
-cookies and enviroment. The purpose is to give you a table that looks
+cookies and environment. The purpose is to give you a table that looks
 good.
 
 =head2 set error_document
@@ -1218,7 +1218,7 @@ plans
 
 
 The control variables, with defaults: 
-    REPORT = "enviroment",
+    REPORT = "environment",
     ON = "fatals"
     TO = "browser",
     TO_LOG = "STDERR",

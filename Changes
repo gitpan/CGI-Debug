@@ -2,6 +2,14 @@ Revision history for Perl extension CGI::Debug.
 
 
 
+1999-05-11
+
+   Release 0.05
+
+   Fixed bad spelling:
+   s/enviroment/environment/g in module and POD
+
+
 1999-05-09
 
    Release 0.04
@@ -14,6 +22,7 @@ Revision history for Perl extension CGI::Debug.
    Handled errors from MIME::Lite and added info about it i POD
 
    Added "set => { error_document => 'redirection_url' } }"
+
 
 
 1999-04-23
