@@ -2,6 +2,20 @@ Revision history for Perl extension CGI::Debug.
 
 
 
+1999-05-09
+
+   Release 0.04
+
+   Changed wording in POD
+
+   Fixed bug in the Control->to action determination. "to =>
+   'browser'", etc, wasn't working in 0.03.
+
+   Handled errors from MIME::Lite and added info about it i POD
+
+   Added "set => { error_document => 'redirection_url' } }"
+
+
 1999-04-23
 
    Release 0.03

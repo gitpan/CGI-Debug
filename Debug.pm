@@ -3,7 +3,7 @@ package CGI::Debug;
 use strict;
 use vars qw( $VERSION $Module $File_base $Control $Reference 
 	     $Content_type $Body_length $Import_error $DEBUG $Started);
-$VERSION = 0.03;
+$VERSION = 0.04;
 
 sub BEGIN
 {
@@ -40,7 +40,7 @@ sub BEGIN
     $File_base =~ s/::/-/g;
     
     # Redirect STDERR to a temporary file
-    unless( $DEBUG )
+    unless( $DEBUG > 1 )
     {
 	open(OLDERR, ">&STDERR");  # Save real STDERR
 	open (STDERR,">${File_base}-error-$$") 
@@ -74,7 +74,11 @@ sub import
 	    mail    => [],
 	},
 	header => [qw( control ignore minimal )],
-	set    => { param_length => "" },
+	set    => 
+	{ 
+	    param_length   => "", 
+	    error_document => "",
+	},
     };
 
     eval { $Control = &unravel( \%params, $Reference ) };
@@ -105,7 +109,7 @@ sub import
     }
     elsif( $Control->{'header'}{'control'} )
     {
-	unless( $DEBUG ) # Eating STDOUT
+	unless( $DEBUG > 1 ) # Eating STDOUT
 	{
 	    open(OLDOUT, ">&STDOUT");  # Save real STDOUT
 	    open(STDOUT, ">${File_base}-out-$$") 
@@ -119,7 +123,7 @@ sub import_error
 {
     my( $error, $paramsref ) = @_;
     print "Content-Type: text/html\n\n";
-    print &error_header;
+    print &CGI::start_html("$Module response");
 
     print "<p>You got an error!\n";
 
@@ -129,7 +133,7 @@ sub import_error
     }
 
     print "<p>$error\n";
-    print &error_footer;
+    print &CGI::end_html;
 
     # Set error flag, for not go into END
     # This avoid a perl core dump under 5.005_02
@@ -137,20 +141,15 @@ sub import_error
     exit; 
 }
 
-sub error_header
-{
-    return "<html><head><title>$Module response</title></head><body>\n\n";
-}
-sub error_footer { "</body></html>\n" }
-
 sub END
 {
     return if $Import_error; # This avoids a perl core dump under 5.005_02
 
-    warn Data::Dumper::Dumper($Control) if $DEBUG >2; # DEBUG
+    require 'Data/Dumper.pm'; warn Data::Dumper::Dumper($Control) if $DEBUG >2; # DEBUG
     my $errfile = &set_defaults;
+    my $out_ref = undef;
 
-    unless( $DEBUG )
+    unless( $DEBUG > 1 )
     {
 	close STDERR;
 	open( STDERR, ">&OLDERR" );
@@ -170,13 +169,9 @@ sub END
     
     if( $Control->{'header'}{'control'} )
     {
-	$errfile .= &header_control;
-    }
-    elsif( $? )
-    {
-	$Control->{'header'}{'minimal'} or
-	    print "Content-Type: text/html\n\n";
-	print &error_header if $Control->{'to'}{'browser'};
+	my $header_error;
+	($header_error, $out_ref) = &header_control;
+	$errfile .= $header_error;
     }
 
     my $info = "";
@@ -187,7 +182,7 @@ sub END
 #    $info .= &HTML_complians     if $Control->{'report'}{'HTML_complians'};
 
 
-    if( $Control->{'report'}{'internals'} )
+    if( $Control->{'report'}{'internals'} or $DEBUG )
     {
 	if( eval{ require 'Data/Dumper.pm' } )
 	{
@@ -198,6 +193,7 @@ sub END
 	    $info .= "Data::Dumper not found\n";
 	}
     }
+
 
     if( $? or (defined $Body_length and $Body_length == 0) or
 	$Control->{'on'}{'warnings'} && $errfile or
@@ -241,7 +237,7 @@ sub END
 
 	if( $Control->{'to'}{'mail'} )
 	{
-	    if( eval( require "MIME/Lite.pm" ))
+	    if( eval{ require "MIME/Lite.pm" })
 	    {
 		foreach my $recipient ( @{ $Control->{'to'}{'mail'} } )
 		{
@@ -257,7 +253,12 @@ sub END
 			Subject => "Error in $script_name",
 			Type    =>'TEXT', 
 			Data    =>$body;
-		    $msg->send;
+		    if( not eval{ $msg->send })
+		    {
+			$Control->{'to'}{'browser'} = 1;
+			$errfile .= "\n$Module (MIME::Lite):\n$@" if $@;
+			$errfile .= "\n$Module: Could not mail to '$recipient'\n\n";
+		    }
 		}
 	    }
 	    else
@@ -267,21 +268,32 @@ sub END
 	    }
 	}
 
-	if( $Control->{'to'}{'browser'})
+	if( $Control->{'to'}{'browser'} or $DEBUG )
 	{
-	    if( $? or (defined $Body_length and $Body_length == 0) )
+	    if( defined $Body_length and $Body_length == 0 )
 	    {
+		print &CGI::header;
+		print &CGI::start_html("$Module response");
 		print "<h2>$script_name</h2>\n";
 		print "<plaintext>\n";
 	    }
 	    elsif( defined $Content_type and $Content_type eq "text/html")
 	    {
-		print "<hr>" if not defined $Body_length or $Body_length;
+		print $$out_ref if defined $$out_ref;
+
+		if( not defined $Body_length or $Body_length )
+		{
+		    print "<hr>";
+		}
+
 		print "<h2>$script_name</h2>\n";
 		print "<plaintext>\n";
 	    }
 	    else
 	    {
+		print $$out_ref if defined $$out_ref;
+
+
 		print "\n\n";
 		print "<PLAINTEXT>\n" if not defined $Content_type;
 		print("-"x60,"\n\n") if not defined $Body_length or $Body_length;
@@ -293,14 +305,52 @@ sub END
 	    
 	    print "\n<EOF>\n";
 	}
+	elsif( defined $Body_length and $Body_length == 0 )
+	{
+	    if( defined $Control->{'set'}{'error_document'} )
+	    {
+		print &CGI::redirect( $Control->{'set'}{'error_document'} );
+	    }
+	    else
+	    {
+		print &CGI::header;
+		print &CGI::start_html('CGI Error');
+		print &CGI::h1('CGI Error');
+		print &CGI::p('An error occured while generating this
+	page. The webmaster has now been notified.');
+		print &CGI::end_html;
+	    }
+	}
+	else
+	{
+	    # Errors - no HTML output
+	    #
+	    print $$out_ref if defined $$out_ref;
+	}
+    }
+    else
+    {
+	# No errors
+	#
+	print $$out_ref if defined $$out_ref;
     }
 
-    unless( $DEBUG )
+    unless( $DEBUG > 1 )
     {
 	select OLDERR; # To get rid of warnings...
 	select OLDOUT; # To get rid of warnings...
+	
+	close OLDOUT;
     }
     select STDOUT;
+
+    close STDOUT; 
+    #
+    # Sometimes, there are some stuff left in the buffer. Strange!!!
+    # This is for 5.005_02. There seem to be output from print
+    # statements, that should never have been executed, because of
+    # compile errors. This close stops that text from getting out.
+
 }
 
 sub key_values
@@ -366,7 +416,7 @@ sub header_control
     my $outfile = "";
     my $errfile = "";
 
-    unless( $DEBUG )
+    unless( $DEBUG > 1 )
     {
 	close STDOUT;
 	open( STDOUT, ">&OLDOUT" );
@@ -389,19 +439,14 @@ sub header_control
 
     if( $Content_type )
     {
-	print $outfile;
+	# NOP
     }
     elsif( length $outfile == 0 )
     {
-	print "Content-Type: text/html\n\n";
-	print &error_header;
-	
 	$errfile .= "\nYour program doesn't produce ANY output!\n\n";
     }
     else
     {
-	print "Content-Type: text/html\n\n";
-	print &error_header;
 	if( not $? )
 	{
 	    $errfile .= "\nMalformed header!\n\n";
@@ -421,7 +466,7 @@ sub header_control
 	$errfile .= "-------------------------------------------------\n\n";
     }
 
-    return $errfile;
+    return( $errfile, \$outfile );
 }
 
 sub header_ok
@@ -591,7 +636,7 @@ sub unravel
     {
 	if( not $params_ref )
 	{
-	    $result = { $params => undef };
+	    $result = { $params => undef }; # The "undef" will later be defined
 	}
 	elsif( $params_ref eq 'HASH' )
 	{
@@ -645,19 +690,23 @@ sub set_defaults
 		      file    => ["${File_base}-error.txt"],
 		      mail    => [$user],
 		      );
-    if( exists $Control->{'to'} )
+    foreach my $pref (keys %default_to)
     {
-	foreach my $pref (keys %default_to)
+	foreach( CGI::cookie("${module_name}-to-$pref"), 
+		 (exists $ENV{"${module_name}-to-$pref"} 
+		  and $ENV{"${module_name}-to-$pref"} ),
+		 )
 	{
-	    foreach( CGI::cookie("${module_name}-to-$pref"), 
-		     (exists $ENV{"${module_name}-to-$pref"} 
-		      and $ENV{"${module_name}-to-$pref"} ),
-		     )
-	    {
-		$_ and $Control->{'to'}{$pref}=$_ and last;
-	    }
+	    $_ and $Control->{'to'}{$pref}=$_ and last;
+	}
+	if( exists $Control->{'to'} and
+	    exists $Control->{'to'}{$pref} and
+	    not defined $Control->{'to'}{$pref})
+	{
+	    $Control->{'to'}{$pref} = $default_to{$pref};
 	}
     }
+
 
     ### Control
     #
@@ -766,15 +815,15 @@ CGI::Debug - module for CGI programs debugging
 
 =head1 DESCRIPTION
 
-CGI::Debug will catch (almost) all compilation errors and warnings and will
-display them in the browser.
+CGI::Debug will catch (almost) all compilation and runtime errors and
+warnings and will display them in the browser.
 
 Just "use CGI::Debug" on the second row in your program.  The module
 will not change the behaviour of your cgi program. As long as your
 program works, you will not notice the modules presence.
 
-You can at any time remove the "use CGI::Debug" without changing the
-behaviour of your program. It will only run faster.
+At any time you can remove the "use CGI::Debug" without changing the
+behaviour of your program. It will only run MUCH faster.
 
 The actions of CGI::Debug is determined by, in order:
   1. cookie control variables
@@ -1035,7 +1084,12 @@ versions.
 Send report with email.
 
 The default mailaddress is the owner of the cgi program.  This
-function requires the MIME::Lite module. (That is a greate module!)
+function requires the MIME::Lite module. If there is any problem with
+the default behaviour of MIME::Lite (using sendmail), you can change
+its configuration. See the MIME::Lite documentation. If you
+want to change the path:
+
+  use MIME::Lite; BEGIN{ MIME::Lite->send('sendmail' => '/usr/sbin/sendmail -t -oi -oem') }
 
 The idea is to specify an email address that will be used if anybody
 besides yourself is getting an error. You will not get your own
@@ -1094,6 +1148,21 @@ The default length is 40 chars. This is used for query parameters,
 cookies and enviroment. The purpose is to give you a table that looks
 good.
 
+=head2 set error_document
+
+  Cookie / ENV: CGI-Debug-set-error_document=value
+
+  Import: set => { error_document => 'value', ... }
+
+Set what page to redirect to if there was an error report, not sent to
+browser.
+
+This will show up in the browser if the error is going somewhere
+else.  If no page is specified, a short generic CGI error response
+will show up. But if the CGI program succeeded in printing a valid
+http header and something in the body, that will be showed instead,
+even if the program later crashed.
+
 =head1 TODO
 
 =over
@@ -1118,9 +1187,6 @@ Implement HTML_compliance controls (using HTML::validate)
 
 Implement function for debugging in a separate window
 
-=item *
-
-Enable custom responses for visitors on program failure
 
 =back
 
