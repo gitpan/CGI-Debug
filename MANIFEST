@@ -37,4 +37,4 @@ t/header/mixed.cgi
 t/internals.t
 t/internals/not_found.cgi
 t/mail.t
-t/mail/send.cgi
+t/mail/send.tmpl

@@ -1,15 +1,11 @@
-CGI::Debug  v0.07 alpha   -   module for debugging CGI programs.
+CGI::Debug  v1.00   -   module for debugging CGI programs.
 
 
-CHANGES since 0.06
+CHANGES since 0.07
 
-   Updated module to worj with perl v5.6.0
+   Tested with perl v5.7.0
 
-   require perl 5.004_05
-
-   supporting perl binary in nonstandard place
-
-   enhancing test suit
+   New email address of autor
 
 
 
@@ -70,7 +66,7 @@ Send debug data as mail to file owner:
 REQUIRES
 
  o  CGI
- o  perl 5.004
+ o  perl 5.004_05
 
 
 TODO
@@ -86,5 +82,5 @@ TODO
 
 AUTHOR
 
-  Jonas Liljegren <jonas@paranormal.o.se>
+  Jonas Liljegren <jonas@paranormal.se>
 

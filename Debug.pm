@@ -3,7 +3,7 @@ package CGI::Debug;
 use strict;
 use vars qw( $VERSION $Module $File_base $Control $Reference 
 	     $Content_type $Body_length $Done $DEBUG $Started);
-$VERSION = 0.07;
+$VERSION = '1.00';
 
 sub BEGIN
 {
@@ -30,7 +30,7 @@ sub BEGIN
 
 	# Set error flag, for not go into END
 	# This avoid a perl core dump under 5.005_02
-	$Done = 1; 
+	$Done = 1;
       }
 
 
@@ -40,7 +40,7 @@ sub BEGIN
     }
 
     if( exists $ENV{'GATEWAY_INTERFACE'} and
-	$ENV{'GATEWAY_INTERFACE'} =~ /^CGI-Perl/ 
+	$ENV{'GATEWAY_INTERFACE'} =~ /^CGI-Perl/
 	)
     {
 	my $modfile = $Module;
@@ -51,7 +51,7 @@ sub BEGIN
 	{
 	    last unless $filename =~ /\/$modfile\.pm$/;
 	}
-	
+
 	warn "$filename: $Module can't be used under mod_perl\n";
 
 	return;
@@ -77,12 +77,12 @@ sub BEGIN
     $Control = {};
     $File_base = "/tmp/$Module";
     $File_base =~ s/::/-/g;
-    
+
     # Redirect STDERR to a temporary file
     unless( $DEBUG > 1 )
     {
 	open(OLDERR, ">&STDERR");  # Save real STDERR
-	open (STDERR,">${File_base}-error-$$") 
+	open (STDERR,">${File_base}-error-$$")
 	    or &import_error( "Could not write to file ${File_base}-error-$$: $!\n" );
     }
 
@@ -112,7 +112,7 @@ sub import
     my( $self, @list ) = @_;
 
 
-    if( exists $ENV{'GATEWAY_INTERFACE'} and 
+    if( exists $ENV{'GATEWAY_INTERFACE'} and
 	$ENV{'GATEWAY_INTERFACE'} =~ /^CGI-Perl/
 	)
     {
@@ -127,11 +127,11 @@ sub import
     # Build referense structure
     $Reference = 
     {
-	report => [qw( errors empty_body time params cookies 
+	report => [qw( errors empty_body time params cookies
 		       environment html_compliance everything internals
 		       )],
 	on     => [qw( fatals warnings anything )],
-	to     => 
+	to     =>
 	{
 	    browser => "",
 	    log     => "",
@@ -139,9 +139,9 @@ sub import
 	    mail    => [],
 	},
 	header => [qw( control ignore minimal )],
-	set    => 
-	{ 
-	    param_length   => "", 
+	set    =>
+	{
+	    param_length   => "",
 	    error_document => "",
 	},
     };
@@ -151,14 +151,14 @@ sub import
 
     # All other defaults is determined later
 
-    
-    # The priority is 1) cookies, 2) env variables 
+
+    # The priority is 1) cookies, 2) env variables
     # 3) import parameters, and 4) default
     my $module_name = $Module;
     $module_name =~ s/::/-/g;
-    foreach( CGI::cookie("${module_name}-header"), 
-	     (exists $ENV{"${module_name}-header"} 
-	      and $ENV{"${module_name}-header"}), 
+    foreach( CGI::cookie("${module_name}-header"),
+	     (exists $ENV{"${module_name}-header"}
+	      and $ENV{"${module_name}-header"}),
 	     )
     {
 	$_ and $Control->{'header'}{$_}=1 and last;
@@ -177,8 +177,8 @@ sub import
 	unless( $DEBUG > 1 ) # Eating STDOUT
 	{
 	    open(OLDOUT, ">&STDOUT");  # Save real STDOUT
-	    open(STDOUT, ">${File_base}-out-$$") 
-		or &import_error( "Could not write to file ${File_base}-out-$$: $!\n" ); 
+	    open(STDOUT, ">${File_base}-out-$$")
+		or &import_error( "Could not write to file ${File_base}-out-$$: $!\n" );
 	}
     }
 }
@@ -205,7 +205,7 @@ sub cleanup
 	    $errfile .= "\nCouldn't open ${File_base}-error-$$: $!\n";
 	}
     }
-    
+
     if( $Control->{'header'}{'control'} )
     {
 	my $header_error;
@@ -240,7 +240,7 @@ sub cleanup
 	)
     {
 	my $script_name = $ENV{SCRIPT_NAME} || $0 || "Script without name";
-	
+
 	if( $Control->{'to'}{'log'} )
 	{
 	    my $date = localtime;
@@ -287,13 +287,13 @@ sub cleanup
 			    $msg->to( $recipient );
 			    $msg->subject( "Error in $script_name" );
 #	Doesn't work :-(    $msg->set('From' => "$Module <$server_admin>");
-			    
+
 			    my $fh = $msg->open;
 			    print $fh "File: $script_name\n\n";
 			    print $fh $errfile;
 			    print $fh $info;
 			    print $fh "\n<EOF>\n";
-			
+
 			    $fh->close;
 			})
 		    {
@@ -341,10 +341,10 @@ sub cleanup
 		print("-"x60,"\n\n") if not defined $Body_length or $Body_length;
 		print "\t$script_name\n\n\n";
 	    }
-	    
+
 	    print $errfile;
 	    print $info;
-	    
+
 	    print "\n<EOF>\n";
 	}
 	elsif( defined $Body_length and $Body_length == 0 )
@@ -369,7 +369,7 @@ sub cleanup
 	    #
 	    print $$out_ref if defined $$out_ref;
 	}
-	
+
 	$?=1; # Indicate the error
     }
     else
@@ -383,7 +383,7 @@ sub cleanup
     {
 	select OLDERR; # To get rid of warnings...
 	select OLDOUT; # To get rid of warnings...
-	
+
 	close OLDOUT;
     }
     select STDOUT;
@@ -433,13 +433,13 @@ sub key_values
 		    $tot = length( $val );
 		    $trunc = ( $tot>$p_length ? '...' : '' );
 		}
-		$info .= sprintf("%-*s =%4s[%.*s]%s\n", 
-				 $key_length, $key, $tot, 
+		$info .= sprintf("%-*s =%4s[%.*s]%s\n",
+				 $key_length, $key, $tot,
 				 $p_length, $value, $trunc);
 	    }
 	}
 	$info .= "\n";
-	
+
 	return $info;
 }
 
@@ -455,7 +455,7 @@ sub report_cookies
 
 sub report_environment
 {
-    return &key_values( 'Environment', \%ENV ); 
+    return &key_values( 'Environment', \%ENV );
 }
 
 sub header_control
@@ -480,7 +480,7 @@ sub header_control
 	    $errfile .= "\nCouldn't open ${File_base}-out-$$: $!\n";
 	}
     }
-    
+
     ($Content_type, $Body_length) = &header_ok( \$outfile );
     $errfile .= "Body_length UNDEF\n" if not defined $Body_length;
 
@@ -502,9 +502,9 @@ sub header_control
 	    $errfile .= "-------------------------------------------------\n\n";
 	}
     }
-    
-    if( (defined $Body_length and $Body_length == 0) and 
-	$Control->{'report'}{'empty_body'} and 
+
+    if( (defined $Body_length and $Body_length == 0) and
+	$Control->{'report'}{'empty_body'} and
 	$Content_type and not $? )
     {
 	$errfile .= "\nEmpty body!\n\n";
@@ -529,8 +529,8 @@ sub header_ok
 
     if( $$ofr =~ m/\G($token):($nctl)($crlf)/gmco )
     {
-	my $name = $1; 
-	my $val  = $2; 
+	my $name = $1;
+	my $val  = $2;
 	my $pos = pos($$ofr);
 	$lcrlf = $3;
 
@@ -546,7 +546,7 @@ sub header_ok
 		$content = 'text/html' if $val=~ m/\btext\/html\b/sio;
 		$content = 'text/plain' if $val=~ m/\btext\/plain\b/sio;
 	    }
-	    
+
 	    $$ofr =~ m/\G($token):($nctl)$lcrlf/gmco;
 	    $name = $1; $val = $2;
 
@@ -566,7 +566,7 @@ sub header_ok
 
 sub report_time
 {
-    return sprintf("\nThis program finished in %.3f seconds.\n", 
+    return sprintf("\nThis program finished in %.3f seconds.\n",
 		   time-$Started);
 }
 
@@ -702,7 +702,7 @@ sub unravel
 	{
 	    die "'$name' must be scalar or hash ref...\n";
 	}
-	
+
 	my $newref = {};
 	foreach my $key ( keys %$result )
 	{
@@ -741,8 +741,8 @@ sub set_defaults
 		      );
     foreach my $pref (keys %default_to)
     {
-	foreach( CGI::cookie("${module_name}-to-$pref"), 
-		 (exists $ENV{"${module_name}-to-$pref"} 
+	foreach( CGI::cookie("${module_name}-to-$pref"),
+		 (exists $ENV{"${module_name}-to-$pref"}
 		  and $ENV{"${module_name}-to-$pref"} ),
 		 )
 	{
@@ -766,8 +766,8 @@ sub set_defaults
 		   );
     foreach my $pref ('report','on')
     {
-	foreach( CGI::cookie("${module_name}-$pref"), 
-		 (exists $ENV{"${module_name}-$pref"} 
+	foreach( CGI::cookie("${module_name}-$pref"),
+		 (exists $ENV{"${module_name}-$pref"}
 		  and $ENV{"${module_name}-$pref"} ),
 		 )
 	{
@@ -776,19 +776,19 @@ sub set_defaults
 	$Control->{$pref}
 	or $Control->{$pref}{$default{$pref}} = 1;
     }
-    
+
     ### Default for  Control to
     #
-    foreach( CGI::cookie("${module_name}-to"), 
-	     (exists $ENV{"${module_name}-to"} 
+    foreach( CGI::cookie("${module_name}-to"),
+	     (exists $ENV{"${module_name}-to"}
 	      and $ENV{"${module_name}-to"} ),
 	     )
     {
 	$_ and $Control->{'to'}{$_}= $default_to{$_} and last;
     }
-    $Control->{'to'} or $Control->{'to'}{$default{'to'}} = 
+    $Control->{'to'} or $Control->{'to'}{$default{'to'}} =
 	$default_to{$default{'to'}};
-    
+
 
     ### Control set
     #
@@ -798,7 +798,7 @@ sub set_defaults
     foreach my $pref (keys %default_set)
     {
 	foreach( CGI::cookie("${module_name}-set-$pref"), 
-		 (exists $ENV{"${module_name}-set-$pref"} and $ENV{"${module_name}-set-$pref"} ), 
+		 (exists $ENV{"${module_name}-set-$pref"} and $ENV{"${module_name}-set-$pref"} ),
 		 )
 	{
 	    $_ and $Control->{'set'}{$pref}=$_ and last;
@@ -854,7 +854,7 @@ CGI::Debug - module for CGI programs debugging
 		 to     => { browser => 1,
 			     log     => 1,
 			     file    => '/tmp/my_error',
-			     mail    => ['staff@company.orb', 
+			     mail    => ['staff@company.orb',
 					 'webmaster',
 					 ],
 			 },
@@ -1231,6 +1231,9 @@ sending a warning to STDERR.
 
 =head1 TODO
 
+These are things that could be done to make CGI::Debug even better.  I
+have no plan to add new features myself.  Feel free to contribute.
+
 =over
 
 =item *
@@ -1254,13 +1257,13 @@ Implement function for debugging in a separate window
 
 =head1 COPYRIGHT
 
-Copyright (c) 1999 Jonas Liljegren. All rights reserved.
+Copyright (c) 1999-2000 Jonas Liljegren. All rights reserved.
 This program is free software; you can redistribute it and/or
 modify it under the same terms as Perl itself.
 
 =head1 AUTHOR
 
-Jonas Liljegren E<lt>jonas@paranormal.o.seE<gt>
+Jonas Liljegren E<lt>jonas@paranormal.seE<gt>
 
 =head1 SEE ALSO
 
@@ -1279,14 +1282,14 @@ plans
 
 
 
-The control variables, with defaults: 
+The control variables, with defaults:
     REPORT = "environment",
     ON = "fatals"
     TO = "browser",
     TO_LOG = "STDERR",
-    TO_FILE = "/tmp/cgi_error", 
-    TO_MAIL = file_owner, 
-    HEADER = "control", 
+    TO_FILE = "/tmp/cgi_error",
+    TO_MAIL = file_owner,
+    HEADER = "control",
     SET_PARAM_LENGTH = 20
 
 Behaviour is determined by, in order:

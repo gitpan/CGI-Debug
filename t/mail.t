@@ -21,7 +21,6 @@ require 5.004_05;
 use Config; $perl = $Config{'perlpath'};
 
 # Set up a CGI environment
-$path = $ENV{PATH};
 %ENV = ();
 $ENV{REQUEST_METHOD}='GET';
 $ENV{QUERY_STRING}  ='game=chess&game=checkers&weather=dull';
@@ -31,8 +30,7 @@ $ENV{SCRIPT_NAME}   ='/cgi-bin/foo.cgi';
 $ENV{SERVER_PROTOCOL} = 'HTTP/1.0';
 $ENV{SERVER_PORT} = 8080;
 $ENV{SERVER_NAME} = 'the.good.ship.lollypop.com';
-
-$ENV{PATH} = $path;
+$ENV{PATH} = '/usr/bin';
 
 
 # Mail to owner
