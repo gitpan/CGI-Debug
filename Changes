@@ -1,0 +1,28 @@
+Revision history for Perl extension CGI::Debug.
+
+
+
+1999-04-23
+
+   Release 0.03
+
+   Changed priority for configuration sources
+
+   Added Makefile
+
+
+
+1999-04-21
+
+   Release 0.02
+
+   Added mail function
+
+   Debugged header control
+
+   Added documentation
+
+
+1999-03-24
+
+   Release 0.01
